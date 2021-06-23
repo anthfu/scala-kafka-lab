@@ -10,13 +10,12 @@ import zio.stream.ZStream
 import java.util.UUID
 
 object ZioProducer extends App {
-  override def run(args: List[String]): URIO[ZEnv, ExitCode] = {
-    val settings = ProducerSettings(List("localhost:9092"))
-    val producer = ZLayer.fromManaged(Producer.make[Any, UUID, String](settings, Serde.uuid, Serde.string))
-    stream.provideSomeLayer[ZEnv](producer).exitCode
-  }
+  type ProducerEnv = ZEnv with Producer[Any, UUID, String]
 
-  private lazy val stream =
+  override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] =
+    stream.provideSomeLayer[ZEnv](producerLayer).exitCode
+
+  private def stream: ZIO[ProducerEnv, Throwable, Unit] =
     ZStream
       .fromIterable(0 to 1000)
       .map(n => new ProducerRecord("test-topic", UUID.randomUUID(), n.toString))
@@ -25,4 +24,9 @@ object ZioProducer extends App {
           Producer.produce[Any, UUID, String](rec)
       }
       .runDrain
+
+  private def producerLayer: ZLayer[ZEnv, Throwable, Producer[Any, UUID, String]] = {
+    val settings = ProducerSettings(List("localhost:9092"))
+    ZLayer.fromManaged(Producer.make[Any, UUID, String](settings, Serde.uuid, Serde.string))
+  }
 }
