@@ -19,11 +19,12 @@ object ZioProducer extends App {
   type AppEnv = ZEnv with Has[AppConfig] with Producer[Any, UUID, String]
 
   override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
-    val appLayer = configLayer ++ producerLayer
-    stream.provideLayer(appLayer).exitCode
+    val configLayer = ZEnv.live ++ getConfigLayer
+    val appLayer = configLayer ++ (configLayer >>> getProducerLayer)
+    app.provideLayer(appLayer).exitCode
   }
 
-  private def stream: ZIO[AppEnv, Throwable, Unit] =
+  private def app: ZIO[AppEnv, Throwable, Unit] =
     ZStream
       .fromIterable(0 to 1000)
       .mapM { n =>
@@ -36,13 +37,18 @@ object ZioProducer extends App {
       }
       .runDrain
 
-  private def configLayer: ZLayer[ZEnv, Throwable, Has[AppConfig]] = {
+  private def getConfigLayer: ZLayer[Any, Throwable, Has[AppConfig]] = {
     val descriptor = (string("app/topic") |@| string("app/bootstrap_server"))(AppConfig.apply, AppConfig.unapply)
     YamlConfig.fromPath(Path.of("src/main/resources/application.yml"), descriptor)
   }
 
-  private def producerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Producer[Any, UUID, String]] = {
-    val settings = ProducerSettings(List("localhost:9092"))
-    ZLayer.fromManaged(Producer.make[Any, UUID, String](settings, Serde.uuid, Serde.string))
+  private def getProducerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Producer[Any, UUID, String]] = {
+    val managed = ZManaged.access[Has[AppConfig]](_.get)
+      .flatMap { conf =>
+        val settings = ProducerSettings(List(conf.bootstrapServer))
+        Producer.make[Any, UUID, String](settings, Serde.uuid, Serde.string)
+      }
+
+    ZLayer.fromManaged(managed)
   }
 }
