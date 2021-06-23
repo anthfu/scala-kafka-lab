@@ -14,8 +14,8 @@ object ZioProducer extends App {
 
   override def run(args: List[String]): URIO[ZEnv, ExitCode] = {
     val settings = ProducerSettings(List("localhost:9092"))
-    val producer = ZLayer.fromManaged(Producer.make(settings, Serde.uuid, Serde.string))
-    zio.provideSomeLayer(producer).exitCode
+    val producer = ZLayer.fromManaged(Producer.make[Any, UUID, String](settings, Serde.uuid, Serde.string))
+    zio.provideSomeLayer[ZEnv](producer).exitCode
   }
 
   private def zio: ZIO[ProducerEnv, Throwable, Unit] =
