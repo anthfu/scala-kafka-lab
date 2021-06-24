@@ -32,13 +32,17 @@ object ZioProducer extends App {
           conf <- getConfig[AppConfig]
           rec   = new ProducerRecord(conf.topic, UUID.randomUUID(), n.toString)
           _    <- Producer.produce[Any, UUID, String](rec)
-          _    <- putStrLn(s"Sent: ${rec.value}")
+          _    <- putStrLn(s"key: ${rec.key}, value: ${rec.value}")
         } yield ()
       }
       .runDrain
 
   private def getConfigLayer: ZLayer[Any, Throwable, Has[AppConfig]] = {
-    val descriptor = (string("app/topic") |@| string("app/bootstrap_server"))(AppConfig.apply, AppConfig.unapply)
+    val descriptor = (
+      string("app/topic") |@|
+      string("app/bootstrap_server")
+    )(AppConfig.apply, AppConfig.unapply)
+
     YamlConfig.fromPath(Path.of("src/main/resources/application.yml"), descriptor)
   }
 
