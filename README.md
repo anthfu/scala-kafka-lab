@@ -6,7 +6,7 @@ When integrating multiple complex technologies, especially in a secondary langua
 
 ## Clients by Technology Stack
 
-### ZIO Kafka + ???
+### ZIO
 
 * **zio-producer**
 * **zio-consumer**
