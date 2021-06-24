@@ -46,7 +46,7 @@ object ZioConsumer extends App {
   private def getConsumerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Consumer] = {
     val managed = ZManaged.access[Has[AppConfig]](_.get)
       .flatMap { conf =>
-        val settings = ConsumerSettings(List(conf.bootstrapServer))
+        val settings = ConsumerSettings(List(conf.bootstrapServer)).withGroupId(conf.groupId)
         Consumer.make(settings)
       }
 
