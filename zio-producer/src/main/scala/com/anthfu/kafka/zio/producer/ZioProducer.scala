@@ -25,10 +25,7 @@ object ZioProducer extends App {
     val appLayer = configLayer ++ (configLayer >>> makeProducerLayer)
     val stream = makeStream.provideLayer(appLayer).runDrain
 
-    val app = Http.fromEffect(stream) *> Http.collect[Request] {
-      case Method.GET -> Root =>
-        Response.http()
-    }
+    val app = Http.fromEffect(stream) *> Http.empty
 
     Server.start(8080, app).exitCode
   }
