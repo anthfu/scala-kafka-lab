@@ -1,6 +1,8 @@
 package com.anthfu.kafka.zio.producer
 
-import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
+import zhttp.http._
+import zhttp.service.Server
 import zio._
 import zio.config.ConfigDescriptor._
 import zio.config._
@@ -19,34 +21,40 @@ object ZioProducer extends App {
   type AppEnv = ZEnv with Has[AppConfig] with Producer[Any, UUID, String]
 
   override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
-    val configLayer = ZEnv.live ++ getConfigLayer
-    val appLayer = configLayer ++ (configLayer >>> getProducerLayer)
-    app.provideLayer(appLayer).exitCode
+    val configLayer = ZEnv.live ++ makeConfigLayer
+    val appLayer = configLayer ++ (configLayer >>> makeProducerLayer)
+    val stream = makeStream.provideLayer(appLayer).runDrain
+
+    val app = Http.fromEffect(stream) *> Http.collect[Request] {
+      case Method.GET -> Root =>
+        Response.http()
+    }
+
+    Server.start(8080, app).exitCode
   }
 
-  private def app: ZIO[AppEnv, Throwable, Unit] =
+  private def makeStream: ZStream[AppEnv, Throwable, RecordMetadata] =
     ZStream
       .fromIterable(0 to 1000)
       .mapM { n =>
         for {
           conf <- getConfig[AppConfig]
           rec   = new ProducerRecord(conf.topic, UUID.randomUUID(), n.toString)
-          _    <- Producer.produce[Any, UUID, String](rec)
-          _    <- putStrLn(s"key: ${rec.key}, value: ${rec.value}")
-        } yield ()
+          md   <- Producer.produce[Any, UUID, String](rec)
+          _    <- putStrLn(s"partition: ${md.partition} offset: ${md.offset} key: ${rec.key}, value: ${rec.value}")
+        } yield md
       }
-      .runDrain
 
-  private def getConfigLayer: ZLayer[Any, Throwable, Has[AppConfig]] = {
+  private def makeConfigLayer: ZLayer[Any, Throwable, Has[AppConfig]] = {
     val descriptor = (
-      string("app/topic") |@|
-      string("app/bootstrap_server")
+      nested("app")(string("topic")) |@|
+      nested("app")(string("bootstrap_server"))
     )(AppConfig.apply, AppConfig.unapply)
 
-    YamlConfig.fromPath(Path.of("src/main/resources/application.yml"), descriptor)
+    YamlConfig.fromPath(Path.of("zio-producer/src/main/resources/application.yml"), descriptor)
   }
 
-  private def getProducerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Producer[Any, UUID, String]] = {
+  private def makeProducerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Producer[Any, UUID, String]] = {
     val managed = ZManaged.access[Has[AppConfig]](_.get)
       .flatMap { conf =>
         val settings = ProducerSettings(List(conf.bootstrapServer))
