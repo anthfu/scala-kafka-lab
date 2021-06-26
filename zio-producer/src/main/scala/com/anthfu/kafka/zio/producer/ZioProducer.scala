@@ -1,8 +1,9 @@
 package com.anthfu.kafka.zio.producer
 
 import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
-import zhttp.http._
-import zhttp.service.Server
+import zhttp.http.{Http, Method, Response, _}
+import zhttp.service.server.ServerChannelFactory
+import zhttp.service.{EventLoopGroup, Server}
 import zio._
 import zio.config.ConfigDescriptor._
 import zio.config._
@@ -16,21 +17,27 @@ import java.nio.file.Path
 import java.util.UUID
 
 object ZioProducer extends App {
-  case class AppConfig(topic: String, bootstrapServer: String)
+  case class AppConfig(bootstrapServer: String, topic: String)
 
   type AppEnv = ZEnv with Has[AppConfig] with Producer[Any, UUID, String]
 
   override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
-    val configLayer = ZEnv.live ++ makeConfigLayer
-    val appLayer = configLayer ++ (configLayer >>> makeProducerLayer)
-    val stream = makeStream.provideLayer(appLayer).runDrain
+    val http = Http.collect[Request] {
+      case Method.GET -> Root => Response.ok
+    }
 
-    val app = Http.fromEffect(stream) *> Http.empty
+    val server = Server.port(8080) ++ Server.app(http)
 
-    Server.start(8080, app).exitCode
+    server.make.use { _ =>
+      val configLayer = ZEnv.live ++ makeConfigLayer
+      val appLayer = configLayer ++ (configLayer >>> makeProducerLayer)
+      stream.provideLayer(appLayer).runDrain *> ZIO.never
+    }
+    .provideCustomLayer(ServerChannelFactory.auto ++ EventLoopGroup.auto(0))
+    .exitCode
   }
 
-  private def makeStream: ZStream[AppEnv, Throwable, RecordMetadata] =
+  private def stream: ZStream[AppEnv, Throwable, RecordMetadata] =
     ZStream
       .fromIterable(0 to 1000)
       .mapM { n =>
@@ -44,8 +51,8 @@ object ZioProducer extends App {
 
   private def makeConfigLayer: ZLayer[Any, Throwable, Has[AppConfig]] = {
     val descriptor = (
-      nested("app")(string("topic")) |@|
-      nested("app")(string("bootstrap_server"))
+      nested("app")(string("bootstrap_server")) |@|
+      nested("app")(string("topic"))
     )(AppConfig.apply, AppConfig.unapply)
 
     YamlConfig.fromPath(Path.of("zio-producer/src/main/resources/application.yml"), descriptor)
