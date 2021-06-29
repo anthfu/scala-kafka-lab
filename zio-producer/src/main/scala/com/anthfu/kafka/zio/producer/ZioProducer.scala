@@ -1,7 +1,7 @@
 package com.anthfu.kafka.zio.producer
 
 import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
-import zhttp.http.{Http, Method, Response, _}
+import zhttp.http._
 import zhttp.service.server.ServerChannelFactory
 import zhttp.service.{EventLoopGroup, Server}
 import zio._
@@ -31,13 +31,13 @@ object ZioProducer extends App {
     server.make.use { _ =>
       val configLayer = ZEnv.live ++ makeConfigLayer
       val appLayer = configLayer ++ (configLayer >>> makeProducerLayer)
-      stream.provideLayer(appLayer).runDrain *> ZIO.never
+      producerStream.provideLayer(appLayer).runDrain *> ZIO.never
     }
     .provideCustomLayer(ServerChannelFactory.auto ++ EventLoopGroup.auto(0))
     .exitCode
   }
 
-  private def stream: ZStream[AppEnv, Throwable, RecordMetadata] =
+  private def producerStream: ZStream[AppEnv, Throwable, RecordMetadata] =
     ZStream
       .fromIterable(0 to 1000)
       .mapM { n =>

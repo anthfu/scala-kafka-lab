@@ -1,3 +1,4 @@
 app:
-  boostrap_server: localhost:9092
+  bootstrap_server: localhost:9092
+  group_id: zio-consumers
   topic: test-topic
