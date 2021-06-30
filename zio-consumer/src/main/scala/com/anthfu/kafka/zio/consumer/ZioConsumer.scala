@@ -11,7 +11,7 @@ import zio.kafka.consumer.{Consumer, ConsumerSettings, Subscription}
 import zio.kafka.serde.Serde
 import zio.stream.ZStream
 
-import java.nio.file.Path
+import scala.io.Source
 
 object ZioConsumer extends App {
   case class AppConfig(topic: String, bootstrapServer: String, groupId: String)
@@ -52,8 +52,8 @@ object ZioConsumer extends App {
       nested("app")(string("group_id"))
     )(AppConfig.apply, AppConfig.unapply)
 
-    val configUri = getClass.getClassLoader.getResource("application.yml").toURI
-    YamlConfig.fromPath(Path.of(configUri), descriptor)
+    val config = Source.fromResource("application.yml").mkString
+    YamlConfig.fromString(config, descriptor)
   }
 
   private def makeConsumerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Consumer] = {

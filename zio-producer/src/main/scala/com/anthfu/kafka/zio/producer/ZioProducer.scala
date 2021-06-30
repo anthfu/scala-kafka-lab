@@ -13,8 +13,8 @@ import zio.kafka.producer.{Producer, ProducerSettings}
 import zio.kafka.serde.Serde
 import zio.stream.ZStream
 
-import java.nio.file.Path
 import java.util.UUID
+import scala.io.Source
 
 object ZioProducer extends App {
   case class AppConfig(bootstrapServer: String, topic: String)
@@ -55,8 +55,8 @@ object ZioProducer extends App {
       nested("app")(string("topic"))
     )(AppConfig.apply, AppConfig.unapply)
 
-    val configUri = getClass.getClassLoader.getResource("application.yml").toURI
-    YamlConfig.fromPath(Path.of(configUri), descriptor)
+    val config = Source.fromResource("application.yml").mkString
+    YamlConfig.fromString(config, descriptor)
   }
 
   private def makeProducerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Producer[Any, UUID, String]] = {
