@@ -26,6 +26,15 @@ lazy val zioSettings = {
   )
 }
 
+lazy val testSettings = {
+  lazy val testcontainersVersion = "1.15.3"
+
+  libraryDependencies ++= Seq(
+    "org.testcontainers" % "kafka"          % testcontainersVersion % Test,
+    "org.testcontainers" % "testcontainers" % testcontainersVersion % Test
+  )
+}
+
 lazy val dockerSettings = Seq(
   dockerBaseImage := "adoptopenjdk:11-jre-hotspot",
   dockerExposedPorts ++= Seq(8080),
@@ -39,3 +48,7 @@ lazy val `zio-consumer` = project
 lazy val `zio-producer` = project
   .enablePlugins(DockerPlugin, JavaAppPackaging)
   .settings(commonSettings ++ zioSettings ++ dockerSettings)
+
+lazy val `integration-test` = project
+  .dependsOn(`zio-consumer`, `zio-producer`)
+  .settings(commonSettings ++ testSettings)
