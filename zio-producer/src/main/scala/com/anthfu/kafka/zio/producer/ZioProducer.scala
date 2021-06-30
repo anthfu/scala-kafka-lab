@@ -55,8 +55,8 @@ object ZioProducer extends App {
       nested("app")(string("topic"))
     )(AppConfig.apply, AppConfig.unapply)
 
-    val configPath = getClass.getClassLoader.getResource("application.yml").toURI
-    YamlConfig.fromPath(Path.of(configPath), descriptor)
+    val configUri = getClass.getClassLoader.getResource("application.yml").toURI
+    YamlConfig.fromPath(Path.of(configUri), descriptor)
   }
 
   private def makeProducerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Producer[Any, UUID, String]] = {

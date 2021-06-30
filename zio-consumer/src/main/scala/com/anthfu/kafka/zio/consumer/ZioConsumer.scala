@@ -52,8 +52,8 @@ object ZioConsumer extends App {
       nested("app")(string("group_id"))
     )(AppConfig.apply, AppConfig.unapply)
 
-    val configPath = getClass.getClassLoader.getResource("application.yml").toURI
-    YamlConfig.fromPath(Path.of(configPath), descriptor)
+    val configUri = getClass.getClassLoader.getResource("application.yml").toURI
+    YamlConfig.fromPath(Path.of(configUri), descriptor)
   }
 
   private def makeConsumerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Consumer] = {
