@@ -27,11 +27,12 @@ lazy val zioSettings = {
 }
 
 lazy val testSettings = {
-  lazy val testcontainersVersion = "1.15.3"
+  lazy val testcontainersScalaVersion = "0.39.5"
 
   libraryDependencies ++= Seq(
-    "org.testcontainers" % "kafka"          % testcontainersVersion % Test,
-    "org.testcontainers" % "testcontainers" % testcontainersVersion % Test
+    "com.dimafeng"  %% "testcontainers-scala-kafka" % testcontainersScalaVersion % Test,
+    "com.dimafeng"  %% "testcontainers-scala-munit" % testcontainersScalaVersion % Test,
+    "org.scalameta" %% "munit" % "0.7.26" % Test
   )
 }
 

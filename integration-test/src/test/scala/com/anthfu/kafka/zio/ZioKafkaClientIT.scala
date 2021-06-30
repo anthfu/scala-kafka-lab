@@ -1,5 +1,7 @@
 package com.anthfu.kafka.zio
 
-class ZioKafkaClientIT {
+import munit.FunSuite
+
+class ZioKafkaClientIT extends FunSuite {
   // TODO
 }
