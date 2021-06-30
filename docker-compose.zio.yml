@@ -1,0 +1,10 @@
+services:
+  zio-consumer:
+    image: zio-consumer:1.0.0-SNAPSHOT
+    ports:
+      - 8081:8080
+
+  zio-producer:
+    image: zio-producer:1.0.0-SNAPSHOT
+    ports:
+      - 8082:8080

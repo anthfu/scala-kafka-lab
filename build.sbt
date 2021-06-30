@@ -25,8 +25,16 @@ lazy val zioSettings = {
   )
 }
 
+lazy val dockerSettings = Seq(
+  dockerBaseImage := "adoptopenjdk:11-jre-hotspot",
+  dockerExposedPorts ++= Seq(8080),
+  dockerUpdateLatest := true
+)
+
 lazy val `zio-consumer` = project
-  .settings(commonSettings ++ zioSettings)
+  .enablePlugins(DockerPlugin, JavaAppPackaging)
+  .settings(commonSettings ++ zioSettings ++ dockerSettings)
 
 lazy val `zio-producer` = project
-  .settings(commonSettings ++ zioSettings)
+  .enablePlugins(DockerPlugin, JavaAppPackaging)
+  .settings(commonSettings ++ zioSettings ++ dockerSettings)
