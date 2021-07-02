@@ -18,18 +18,24 @@ class ZioKafkaClientIT extends FunSuite with TestContainersForAll {
     val network = Network.newNetwork()
 
     val kafkaContainer = KafkaContainer.Def("6.2.0").start()
-    kafkaContainer.container.withNetwork(network)
-    kafkaContainer.container.withNetworkAliases("kafka")
+    kafkaContainer.configure { c =>
+      c.withNetwork(network)
+      c.withNetworkAliases("kafka")
+    }
 
     val consumerContainer = ConsumerContainer.Def().start()
-    consumerContainer.container.withNetwork(network)
-    consumerContainer.container.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-consumer"))
-    consumerContainer.container.dependsOn(kafkaContainer)
+    consumerContainer.configure { c =>
+      c.withNetwork(network)
+      c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-consumer"))
+      c.dependsOn(kafkaContainer)
+    }
 
     val producerContainer = ProducerContainer.Def().start()
-    producerContainer.container.withNetwork(network)
-    producerContainer.container.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-producer"))
-    producerContainer.container.dependsOn(consumerContainer)
+    producerContainer.configure { c =>
+      c.withNetwork(network)
+      c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-producer"))
+      c.dependsOn(consumerContainer)
+    }
 
     kafkaContainer and consumerContainer and producerContainer
   }
