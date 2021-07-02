@@ -10,7 +10,7 @@ class ZioKafkaClientIT extends FunSuite with TestContainersForAll {
   override type Containers = KafkaContainer and ConsumerContainer and ProducerContainer
 
   override def startContainers(): Containers = {
-    val kafkaContainer = KafkaContainer.Def().start()
+    val kafkaContainer = KafkaContainer.Def("6.2.0").start()
     val consumerContainer = ConsumerContainer.Def(port = 8080).start()
     val producerContainer = ProducerContainer.Def(port = 8080).start()
     kafkaContainer and consumerContainer and producerContainer
