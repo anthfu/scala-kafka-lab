@@ -17,55 +17,52 @@ class ZioKafkaClientIT extends FunSuite with TestContainersForAll {
   override def startContainers(): Containers = {
     val network = Network.newNetwork()
 
-    val kafkaContainer = KafkaContainer.Def("6.2.0").start()
-    kafkaContainer.configure { c =>
+    val kafkaContainer = KafkaContainer("6.2.0").configure { c =>
       c.withNetwork(network)
       c.withNetworkAliases("kafka")
     }
 
-    val consumerContainer = ConsumerContainer.Def().start()
-    consumerContainer.configure { c =>
+    val consumerContainer = ConsumerContainer().configure { c =>
       c.withNetwork(network)
       c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-consumer"))
       c.dependsOn(kafkaContainer)
     }
 
-    val producerContainer = ProducerContainer.Def().start()
-    producerContainer.configure { c =>
+    val producerContainer = ProducerContainer().configure { c =>
       c.withNetwork(network)
       c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-producer"))
-      c.dependsOn(consumerContainer)
+      c.dependsOn(kafkaContainer)
     }
+
+    kafkaContainer.start()
+    consumerContainer.start()
+    producerContainer.start()
 
     kafkaContainer and consumerContainer and producerContainer
   }
 
   test("Send and receive messages") {
     withContainers { case _ and consumerContainer and producerContainer =>
-      assert(producerContainer.container.getLogs.contains("value: 1000"))
-      assert(consumerContainer.container.getLogs.contains("value: 1000"))
+      assert(producerContainer.logs.contains("value: 1000"))
+      assert(consumerContainer.logs.contains("value: 1000"))
     }
   }
 }
 
 class ConsumerContainer(underlying: GenericContainer) extends GenericContainer(underlying)
 object ConsumerContainer {
-  case class Def() extends GenericContainer.Def[ConsumerContainer](
-    new ConsumerContainer(GenericContainer(
-      dockerImage = "zio-consumer:1.0.0-SNAPSHOT",
-      exposedPorts = Seq(8080),
-      waitStrategy = Wait.forHttp("/")
-    ))
-  )
+  def apply() = new ConsumerContainer(GenericContainer(
+    dockerImage = "zio-consumer:1.0.0-SNAPSHOT",
+    exposedPorts = Seq(8080),
+    waitStrategy = Wait.forHttp("/")
+  ))
 }
 
 class ProducerContainer(underlying: GenericContainer) extends GenericContainer(underlying)
 object ProducerContainer {
-  case class Def() extends GenericContainer.Def[ProducerContainer](
-    new ProducerContainer(GenericContainer(
-      dockerImage = "zio-producer:1.0.0-SNAPSHOT",
-      exposedPorts = Seq(8080),
-      waitStrategy = Wait.forHttp("/")
-    ))
-  )
+  def apply() = new ProducerContainer(GenericContainer(
+    dockerImage = "zio-producer:1.0.0-SNAPSHOT",
+    exposedPorts = Seq(8080),
+    waitStrategy = Wait.forHttp("/")
+  ))
 }
