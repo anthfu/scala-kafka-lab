@@ -1,56 +1,44 @@
 package com.anthfu.kafka.zio
 
-import com.dimafeng.testcontainers.lifecycle.and
-import com.dimafeng.testcontainers.munit.TestContainersForAll
-import com.dimafeng.testcontainers.{GenericContainer, KafkaContainer}
-import munit.FunSuite
+import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer, KafkaContainer, MultipleContainers}
+import org.scalatest.flatspec.AnyFlatSpec
 import org.slf4j.LoggerFactory
 import org.testcontainers.containers.Network
 import org.testcontainers.containers.output.Slf4jLogConsumer
 import org.testcontainers.containers.wait.strategy.Wait
 
-class ZioKafkaClientIT extends FunSuite with TestContainersForAll {
+class ZioKafkaClientIT extends AnyFlatSpec with ForAllTestContainer {
   private val logger = LoggerFactory.getLogger(getClass)
+  private val network = Network.newNetwork()
 
-  override type Containers = KafkaContainer and ConsumerContainer and ProducerContainer
-
-  override def startContainers(): Containers = {
-    val network = Network.newNetwork()
-
-    val kafkaContainer = KafkaContainer("6.2.0").configure { c =>
-      c.withNetwork(network)
-      c.withNetworkAliases("kafka")
-    }
-
-    val consumerContainer = ConsumerContainer().configure { c =>
-      c.withNetwork(network)
-      c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-consumer"))
-      c.withEnv("BOOTSTRAP_SERVER", "kafka:9092")
-      c.withEnv("GROUP_ID", "zio-consumers")
-      c.withEnv("TOPIC", "zio-test-topic")
-      c.dependsOn(kafkaContainer)
-    }
-
-    val producerContainer = ProducerContainer().configure { c =>
-      c.withNetwork(network)
-      c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-producer"))
-      c.withEnv("BOOTSTRAP_SERVER", "kafka:9092")
-      c.withEnv("TOPIC", "zio-test-topic")
-      c.dependsOn(kafkaContainer)
-    }
-
-    kafkaContainer.start()
-    consumerContainer.start()
-    producerContainer.start()
-
-    kafkaContainer and consumerContainer and producerContainer
+  private lazy val kafkaContainer = KafkaContainer("6.2.0").configure { c =>
+    c.withNetwork(network)
+    c.withNetworkAliases("kafka")
   }
 
-  test("Send and receive messages") {
-    withContainers { case _ and consumerContainer and producerContainer =>
-      assert(producerContainer.logs.contains("value: 1000"))
-      assert(consumerContainer.logs.contains("value: 1000"))
-    }
+  private lazy val consumerContainer = ConsumerContainer().configure { c =>
+    c.withNetwork(network)
+    c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-consumer"))
+    c.withEnv("BOOTSTRAP_SERVER", "kafka:9092")
+    c.withEnv("GROUP_ID", "zio-consumers")
+    c.withEnv("TOPIC", "zio-stream")
+    c.dependsOn(kafkaContainer)
+  }
+
+  private lazy val producerContainer = ProducerContainer().configure { c =>
+    c.withNetwork(network)
+    c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-producer"))
+    c.withEnv("BOOTSTRAP_SERVER", "kafka:9092")
+    c.withEnv("TOPIC", "zio-stream")
+    c.dependsOn(consumerContainer)
+  }
+
+  override val container: MultipleContainers =
+    MultipleContainers(kafkaContainer, consumerContainer, producerContainer)
+
+  it should "send and receive messages" in {
+    assert(producerContainer.logs.contains("value: 1000"))
+    assert(consumerContainer.logs.contains("value: 1000"))
   }
 }
 

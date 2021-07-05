@@ -31,8 +31,8 @@ lazy val testSettings = {
 
   libraryDependencies ++= Seq(
     "com.dimafeng"  %% "testcontainers-scala-kafka" % testcontainersScalaVersion % Test,
-    "com.dimafeng"  %% "testcontainers-scala-munit" % testcontainersScalaVersion % Test,
-    "org.scalameta" %% "munit" % "0.7.26" % Test
+    "com.dimafeng"  %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test,
+    "org.scalatest" %% "scalatest" % "3.2.9" % Test
   )
 }
 
