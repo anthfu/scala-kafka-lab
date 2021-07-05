@@ -7,14 +7,12 @@ import zhttp.service.{EventLoopGroup, Server}
 import zio._
 import zio.config.ConfigDescriptor._
 import zio.config._
-import zio.config.yaml.YamlConfig
 import zio.console.putStrLn
 import zio.kafka.producer.{Producer, ProducerSettings}
 import zio.kafka.serde.Serde
 import zio.stream.ZStream
 
 import java.util.UUID
-import scala.io.Source
 
 object ZioProducer extends App {
   case class AppConfig(bootstrapServer: String, topic: String)
@@ -49,14 +47,13 @@ object ZioProducer extends App {
         } yield md
       }
 
-  private def makeConfigLayer: ZLayer[Any, Throwable, Has[AppConfig]] = {
+  private def makeConfigLayer: ZLayer[ZEnv, Throwable, Has[AppConfig]] = {
     val descriptor = (
-      nested("app")(string("bootstrap_server")) |@|
-      nested("app")(string("topic"))
+      string("BOOTSTRAP_SERVER") |@|
+      string("TOPIC")
     )(AppConfig.apply, AppConfig.unapply)
 
-    val config = Source.fromResource("application.yml").mkString
-    YamlConfig.fromString(config, descriptor)
+    ZConfig.fromSystemEnv(descriptor)
   }
 
   private def makeProducerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Producer[Any, UUID, String]] = {
