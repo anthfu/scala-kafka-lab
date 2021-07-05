@@ -34,8 +34,7 @@ class ZioKafkaClientIT extends AnyFlatSpec with ForAllTestContainer {
     c.dependsOn(kafka)
   }
 
-  override val container: MultipleContainers =
-    MultipleContainers(kafka, consumer, producer)
+  override val container: MultipleContainers = MultipleContainers(kafka, consumer, producer)
 
   "producers and consumers" should "send and receive messages" in {
     assert(producer.logs.contains("value: 1000"))
