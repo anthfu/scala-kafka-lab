@@ -31,7 +31,7 @@ class ZioKafkaClientIT extends AnyFlatSpec with ForAllTestContainer {
     c.withEnv("TOPIC", "zio-stream")
     c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-producer"))
     c.withStartupCheckStrategy(new IndefiniteWaitOneShotStartupCheckStrategy())
-    c.dependsOn(kafka)
+    c.dependsOn(consumer)
   }
 
   override val container: MultipleContainers = MultipleContainers(kafka, consumer, producer)
@@ -45,15 +45,13 @@ class ZioKafkaClientIT extends AnyFlatSpec with ForAllTestContainer {
 class ConsumerContainer(underlying: GenericContainer) extends GenericContainer(underlying)
 object ConsumerContainer {
   def apply() = new ConsumerContainer(GenericContainer(
-    dockerImage = "zio-consumer:1.0.0-SNAPSHOT",
-    exposedPorts = Seq(8080)
+    dockerImage = "zio-consumer:1.0.0-SNAPSHOT"
   ))
 }
 
 class ProducerContainer(underlying: GenericContainer) extends GenericContainer(underlying)
 object ProducerContainer {
   def apply() = new ProducerContainer(GenericContainer(
-    dockerImage = "zio-producer:1.0.0-SNAPSHOT",
-    exposedPorts = Seq(8080)
+    dockerImage = "zio-producer:1.0.0-SNAPSHOT"
   ))
 }
