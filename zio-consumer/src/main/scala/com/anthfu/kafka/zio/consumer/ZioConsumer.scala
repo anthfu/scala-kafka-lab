@@ -5,16 +5,14 @@ import zhttp.service.server.ServerChannelFactory
 import zhttp.service.{EventLoopGroup, Server}
 import zio._
 import zio.config.ConfigDescriptor._
-import zio.config.yaml.YamlConfig
+import zio.config._
 import zio.console.putStrLn
 import zio.kafka.consumer.{Consumer, ConsumerSettings, Subscription}
 import zio.kafka.serde.Serde
 import zio.stream.ZStream
 
-import scala.io.Source
-
 object ZioConsumer extends App {
-  case class AppConfig(topic: String, bootstrapServer: String, groupId: String)
+  case class AppConfig(bootstrapServer: String, groupId: String, topic: String)
 
   type AppEnv = ZEnv with Has[AppConfig] with Consumer
 
@@ -45,15 +43,14 @@ object ZioConsumer extends App {
                 .mapM(_.commit)
     } yield ()
 
-  private def makeConfigLayer: ZLayer[Any, Throwable, Has[AppConfig]] = {
+  private def makeConfigLayer: ZLayer[ZEnv, Throwable, Has[AppConfig]] = {
     val descriptor = (
-      nested("app")(string("topic")) |@|
-      nested("app")(string("bootstrap_server")) |@|
-      nested("app")(string("group_id"))
+      string("BOOTSTRAP_SERVER") |@|
+      string("GROUP_ID") |@|
+      string("TOPIC")
     )(AppConfig.apply, AppConfig.unapply)
 
-    val config = Source.fromResource("application.yml").mkString
-    YamlConfig.fromString(config, descriptor)
+    ZConfig.fromSystemEnv(descriptor)
   }
 
   private def makeConsumerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Consumer] = {

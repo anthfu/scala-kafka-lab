@@ -25,12 +25,17 @@ class ZioKafkaClientIT extends FunSuite with TestContainersForAll {
     val consumerContainer = ConsumerContainer().configure { c =>
       c.withNetwork(network)
       c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-consumer"))
+      c.withEnv("BOOTSTRAP_SERVER", "kafka:9092")
+      c.withEnv("GROUP_ID", "zio-consumers")
+      c.withEnv("TOPIC", "zio-test-topic")
       c.dependsOn(kafkaContainer)
     }
 
     val producerContainer = ProducerContainer().configure { c =>
       c.withNetwork(network)
       c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-producer"))
+      c.withEnv("BOOTSTRAP_SERVER", "kafka:9092")
+      c.withEnv("TOPIC", "zio-test-topic")
       c.dependsOn(kafkaContainer)
     }
 
