@@ -1,57 +1,56 @@
 package com.anthfu.kafka.zio
 
-import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer, KafkaContainer, MultipleContainers}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.slf4j.LoggerFactory
-import org.testcontainers.containers.Network
 import org.testcontainers.containers.output.Slf4jLogConsumer
 import org.testcontainers.containers.startupcheck.IndefiniteWaitOneShotStartupCheckStrategy
+import org.testcontainers.containers.{GenericContainer, KafkaContainer, Network}
+import org.testcontainers.utility.DockerImageName
 
-class ZioKafkaClientIT extends AnyFlatSpec with ForAllTestContainer {
+class ZioKafkaClientIT extends AnyFlatSpec with BeforeAndAfterAll {
+  private val kafkaImage = DockerImageName.parse("confluentinc/cp-kafka:6.1.1")
+  private val producerImage = DockerImageName.parse("zio-producer:1.0.0-SNAPSHOT")
+  private val consumerImage = DockerImageName.parse("zio-consumer:1.0.0-SNAPSHOT")
+
   private val logger = LoggerFactory.getLogger(getClass)
-  private val network = Network.newNetwork()
+  private val kafkaNetwork = Network.newNetwork()
 
-  private lazy val kafka = KafkaContainer("6.1.1").configure { c =>
-    c.withNetwork(network)
-    c.withNetworkAliases("kafka")
+  private lazy val kafka = new KafkaContainer(kafkaImage)
+    .withNetwork(kafkaNetwork)
+    .withNetworkAliases("kafka")
+
+  private val consumer = new GenericContainer(consumerImage)
+  consumer.withNetwork(kafkaNetwork)
+  consumer.withEnv("BOOTSTRAP_SERVER", "kafka:9092")
+  consumer.withEnv("GROUP_ID", "zio-consumers")
+  consumer.withEnv("TOPIC", "zio-stream")
+  consumer.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-consumer"))
+  consumer.dependsOn(kafka)
+
+  private val producer = new GenericContainer(producerImage)
+  producer.withNetwork(kafkaNetwork)
+  producer.withEnv("BOOTSTRAP_SERVER", "kafka:9092")
+  producer.withEnv("TOPIC", "zio-stream")
+  producer.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-producer"))
+  producer.withStartupCheckStrategy(new IndefiniteWaitOneShotStartupCheckStrategy())
+  producer.dependsOn(consumer)
+
+  override protected def beforeAll(): Unit = {
+    kafka.start()
+    consumer.start()
+    producer.start()
   }
 
-  private lazy val consumer = ConsumerContainer().configure { c =>
-    c.withNetwork(network)
-    c.withEnv("BOOTSTRAP_SERVER", "kafka:9092")
-    c.withEnv("GROUP_ID", "zio-consumers")
-    c.withEnv("TOPIC", "zio-stream")
-    c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-consumer"))
-    c.dependsOn(kafka)
+  override protected def afterAll(): Unit = {
+    producer.stop()
+    consumer.stop()
+    kafka.stop()
   }
-
-  private lazy val producer = ProducerContainer().configure { c =>
-    c.withNetwork(network)
-    c.withEnv("BOOTSTRAP_SERVER", "kafka:9092")
-    c.withEnv("TOPIC", "zio-stream")
-    c.withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-producer"))
-    c.withStartupCheckStrategy(new IndefiniteWaitOneShotStartupCheckStrategy())
-    c.dependsOn(consumer)
-  }
-
-  override val container: MultipleContainers = MultipleContainers(kafka, consumer, producer)
 
   "producers and consumers" should "send and receive messages" in {
-    assert(producer.logs.contains("value: 1000"))
-    assert(consumer.logs.contains("value: 1000"))
+    Thread.sleep(30000)
+    assert(producer.getLogs.contains("value: 1000"))
+    assert(consumer.getLogs.contains("value: 1000"))
   }
-}
-
-class ConsumerContainer(underlying: GenericContainer) extends GenericContainer(underlying)
-object ConsumerContainer {
-  def apply() = new ConsumerContainer(GenericContainer(
-    dockerImage = "zio-consumer:1.0.0-SNAPSHOT"
-  ))
-}
-
-class ProducerContainer(underlying: GenericContainer) extends GenericContainer(underlying)
-object ProducerContainer {
-  def apply() = new ProducerContainer(GenericContainer(
-    dockerImage = "zio-producer:1.0.0-SNAPSHOT"
-  ))
 }

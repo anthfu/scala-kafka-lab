@@ -29,7 +29,7 @@ object ZioProducer extends App {
     server.make.use { _ =>
       val configLayer = ZEnv.live ++ makeConfigLayer
       val appLayer = configLayer ++ (configLayer >>> makeProducerLayer)
-      producerStream.provideLayer(appLayer).runDrain *> ZIO.never
+      producerStream.provideLayer(appLayer).runDrain
     }
     .provideCustomLayer(ServerChannelFactory.auto ++ EventLoopGroup.auto(0))
     .exitCode
