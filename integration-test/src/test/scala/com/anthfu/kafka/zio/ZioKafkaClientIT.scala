@@ -8,6 +8,8 @@ import org.testcontainers.containers.startupcheck.IndefiniteWaitOneShotStartupCh
 import org.testcontainers.containers.{GenericContainer, KafkaContainer, Network}
 import org.testcontainers.utility.DockerImageName
 
+import java.util.concurrent.TimeUnit
+
 class ZioKafkaClientIT extends AnyFlatSpec with BeforeAndAfterAll {
   private val kafkaImage = DockerImageName.parse("confluentinc/cp-kafka:6.1.1")
   private val producerImage = DockerImageName.parse("zio-producer:1.0.0-SNAPSHOT")
@@ -52,7 +54,7 @@ class ZioKafkaClientIT extends AnyFlatSpec with BeforeAndAfterAll {
   }
 
   "producers and consumers" should "send and receive messages" in {
-    Thread.sleep(30000)
+    TimeUnit.SECONDS.sleep(30)
     assert(producer.getLogs.contains("value: 1000"))
     assert(consumer.getLogs.contains("value: 1000"))
   }
