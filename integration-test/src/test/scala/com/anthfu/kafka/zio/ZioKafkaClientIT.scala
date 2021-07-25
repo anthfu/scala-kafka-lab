@@ -1,11 +1,12 @@
 package com.anthfu.kafka.zio
 
+import com.anthfu.kafka.util.{ConsumerContainer, ProducerContainer}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.slf4j.LoggerFactory
 import org.testcontainers.containers.output.Slf4jLogConsumer
 import org.testcontainers.containers.startupcheck.IndefiniteWaitOneShotStartupCheckStrategy
-import org.testcontainers.containers.{GenericContainer, KafkaContainer, Network}
+import org.testcontainers.containers.{KafkaContainer, Network}
 import org.testcontainers.utility.DockerImageName
 
 import java.util.concurrent.TimeUnit
@@ -18,14 +19,11 @@ class ZioKafkaClientIT extends AnyFlatSpec with BeforeAndAfterAll {
   private val logger = LoggerFactory.getLogger(getClass)
   private val kafkaNetwork = Network.newNetwork()
 
-  class ProducerContainer extends GenericContainer[ProducerContainer](producerImage)
-  class ConsumerContainer extends GenericContainer[ConsumerContainer](consumerImage)
-
   private val kafka = new KafkaContainer(kafkaImage)
     .withNetwork(kafkaNetwork)
     .withNetworkAliases("kafka")
 
-  private val consumer = new ConsumerContainer()
+  private val consumer = new ConsumerContainer(consumerImage)
     .withNetwork(kafkaNetwork)
     .withEnv("BOOTSTRAP_SERVER", "kafka:9092")
     .withEnv("GROUP_ID", "zio-consumers")
@@ -33,7 +31,7 @@ class ZioKafkaClientIT extends AnyFlatSpec with BeforeAndAfterAll {
     .withLogConsumer(new Slf4jLogConsumer(logger).withPrefix("zio-consumer"))
     .dependsOn(kafka)
 
-  private val producer = new ProducerContainer()
+  private val producer = new ProducerContainer(producerImage)
     .withNetwork(kafkaNetwork)
     .withEnv("BOOTSTRAP_SERVER", "kafka:9092")
     .withEnv("TOPIC", "zio-stream")
