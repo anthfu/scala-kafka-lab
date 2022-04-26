@@ -13,7 +13,8 @@ When integrating multiple complex technologies, especially in a secondary langua
 
 ## Requirements
 
-* A full local installation of [Docker Desktop](https://www.docker.com/products/docker-desktop). It includes Docker Compose if you'd like to run services standalone.
+* Docker
+* Docker Compose if running standalone
 * JDK 11+
 
 ## Build

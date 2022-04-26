@@ -28,7 +28,8 @@ object ZioConsumer extends App {
       val appLayer = configLayer ++ (configLayer >>> makeConsumerLayer)
       consumerStream.provideLayer(appLayer).runDrain *> ZIO.never
     }
-    .provideCustomLayer(ServerChannelFactory.auto ++ EventLoopGroup.auto(0))
+    .provideCustomLayer(
+      ServerChannelFactory.auto ++ EventLoopGroup.auto(0))
     .exitCode
   }
 
@@ -56,7 +57,8 @@ object ZioConsumer extends App {
   private def makeConsumerLayer: ZLayer[ZEnv with Has[AppConfig], Throwable, Consumer] = {
     val managed = ZManaged.access[Has[AppConfig]](_.get)
       .flatMap { conf =>
-        val settings = ConsumerSettings(List(conf.bootstrapServer)).withGroupId(conf.groupId)
+        val settings = ConsumerSettings(List(conf.bootstrapServer))
+          .withGroupId(conf.groupId)
         Consumer.make(settings)
       }
 

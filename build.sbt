@@ -1,11 +1,10 @@
-ThisBuild / organization := "com.anthfu"
 ThisBuild / version := "1.0.0-SNAPSHOT"
-ThisBuild / scalaVersion := "2.13.6"
+ThisBuild / scalaVersion := "2.13.8"
 
 lazy val commonSettings = Seq(
   scalacOptions += "-target:11",
   libraryDependencies ++= Seq(
-    "ch.qos.logback" % "logback-classic" % "1.2.3"
+    "ch.qos.logback" % "logback-classic" % "1.2.11"
   )
 )
 
@@ -27,10 +26,10 @@ lazy val zioSettings = {
 }
 
 lazy val testSettings = {
-  lazy val testcontainersVersion = "1.16.0"
+  lazy val testcontainersVersion = "1.17.1"
 
   libraryDependencies ++= Seq(
-    "org.scalatest"      %% "scalatest"      % "3.2.9"               % Test,
+    "org.scalatest"      %% "scalatest"      % "3.2.11"              % Test,
     "org.testcontainers"  % "kafka"          % testcontainersVersion % Test,
     "org.testcontainers"  % "testcontainers" % testcontainersVersion % Test
   )

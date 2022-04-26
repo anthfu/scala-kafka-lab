@@ -31,7 +31,8 @@ object ZioProducer extends App {
       val appLayer = configLayer ++ (configLayer >>> makeProducerLayer)
       producerStream.provideLayer(appLayer).runDrain
     }
-    .provideCustomLayer(ServerChannelFactory.auto ++ EventLoopGroup.auto(0))
+    .provideCustomLayer(
+      ServerChannelFactory.auto ++ EventLoopGroup.auto(0))
     .exitCode
   }
 
